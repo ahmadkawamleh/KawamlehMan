@@ -1,201 +1,269 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modern API Tester</title>
 
-    <script src="https://cdn.rawgit.com/caldwell/renderjson/master/renderjson.js"></script>
-    <script>
-        window.onload = function () {
-            document.getElementById("loading").style.display = "none";
+  <!-- JSON renderer -->
+  <script src="https://cdn.jsdelivr.net/npm/renderjson@1.4.0/renderjson.min.js"></script>
 
-            let httpverbs = document.querySelectorAll('input[name="HttpVerb"]');
-            for (let i = 0; i < httpverbs.length; i++) {
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #1f2933;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #3b82f6;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
 
-                httpverbs[i].addEventListener("change", function () {
-                    if (this.value == "POST" || this.value == "PUT")
-                        ShowHideRequestBody(true);
-                    else
-                        ShowHideRequestBody(false);
-                });
-            }
-            httpverbs[0].checked = true;
+    * { box-sizing: border-box; }
 
-        }
-        let xhttp = new XMLHttpRequest();
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(135deg, #020617, #020617);
+      color: var(--text);
+      padding: 24px;
+    }
 
-        function ShowHideRequestBody(show) {
-            if (show === true) {
-                document.getElementById("Div_RequestBody").style.display = "block";
-            }
-            else {
-                document.getElementById("Div_RequestBody").style.display = "none";
-            }
-        }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.5rem;
+    }
 
-        function CancelRequest() {
-            xhttp.abort();
-        }
-        function TestAPI() {
-            let APIURL = document.getElementById("APIURL").value.trim();
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
 
-            if (APIURL != "") {
-                document.getElementById("loading").style.display = "block";
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    }
 
-                let httpverb = document.querySelector('input[name="HttpVerb"]:checked').value;
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
-                xhttp.onreadystatechange = function () {
-                    console.log(this);
-                    if (this.readyState == 4) {
-                        document.getElementById("loading").style.display = "none";
-                        document.getElementById("container").innerHTML = "";
-                        document.getElementById("container").appendChild(renderjson(JSON.parse(this.response)));
-                    }
-                }
+    label { font-size: .85rem; color: var(--muted); }
 
-                let Params_Tr = document.getElementsByClassName("trParams");
+    input, textarea, select {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      width: 100%;
+    }
 
-                for (let i = 0; i < Params_Tr.length; i++) {
-                    let ParamKey = Params_Tr[i].children[1].children[0].value.trim();
-                    let ParamVal = Params_Tr[i].children[2].children[0].value.trim();
-                    console.log(ParamKey);
-                    console.log(ParamVal);
-                    if (ParamKey != "" && ParamVal != "") {
-                        APIURL = addParams(APIURL, ParamKey, ParamVal);
-                    }
-                }
+    textarea { resize: vertical; min-height: 180px; }
 
-                APIURL = addParams(APIURL, "_", Date.now());
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
 
-                xhttp.open(httpverb, APIURL, true);
+    button.secondary { background: #334155; }
+    button.danger { background: var(--danger); }
 
-                let header_Tr = document.getElementsByClassName("trHeader");
+    button:disabled { opacity: .6; cursor: not-allowed; }
 
-                for (let i = 0; i < header_Tr.length; i++) {
-                    let HeaderKey = header_Tr[i].children[1].children[0].value.trim();
-                    let HeaderVal = header_Tr[i].children[2].children[0].value.trim();
-                    console.log(HeaderKey);
-                    console.log(HeaderVal);
-                    if (HeaderKey != "" && HeaderVal != "")
-                        xhttp.setRequestHeader(HeaderKey, HeaderVal);
-                }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
 
-                let RequestBody = null;
-                if (httpverb == "POST" || httpverb == "PUT")
-                    RequestBody = document.getElementById("RequestBody").value.trim();
+    td { padding: 4px; }
 
+    .pill-group label {
+      background: #020617;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: .85rem;
+    }
 
+    .pill-group input { display: none; }
 
-                xhttp.send(RequestBody);
+    .pill-group input:checked + label {
+      background: var(--accent);
+    }
 
-            }
-            else {
-                alert('Please enter a URL');
-            }
-        }
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
 
-        function addParams(url, key, value) {
-            if (url.trim() != "") {
-                if (url.indexOf("?") === -1) {
-                    url = url + "?" + key + "=" + value;
-                }
-                else {
-                    url = url + "&" + key + "=" + value;
-                }
-            }
-            return url;
-        }
+    .loader {
+      background: var(--panel);
+      padding: 24px;
+      border-radius: var(--radius);
+      text-align: center;
+    }
 
-        function AddRow(tableId) {
-            let table = document.getElementById(tableId);
-            let row = table.insertRow(-1);
-            let cell1 = row.insertCell(0);
-            let cell2 = row.insertCell(1);
-            let cell3 = row.insertCell(2);
-            cell1.innerHTML = " <button onclick='DeleteRow(this);'>-</button>";
-            if (tableId == 'tblHeaders') {
-                cell2.innerHTML = "<input type='text' placeholder='Key header' size='50' />";
-                cell3.innerHTML = "<input type='text' placeholder='Val header' size='50' />";
-                row.setAttribute("class", "trHeader");
-            } else {
-                cell2.innerHTML = "<input type='text' placeholder='Key param' size='50' />";
-                cell3.innerHTML = "<input type='text' placeholder='Val param' size='50' />";
-                row.setAttribute("class", "trParams");
-            }
-        }
+    .response {
+      max-height: 600px;
+      overflow: auto;
+      background: #020617;
+      border-radius: 8px;
+      padding: 12px;
+    }
 
-        function DeleteRow(buttonDelete) {
-            buttonDelete.parentNode.parentNode.parentNode.removeChild(buttonDelete.parentNode.parentNode);
-        }
-    </script>
-    <style>
-        #loading {
-            width: 100%;
-            height: 100%;
-            top: 0px;
-            left: 0px;
-            position: fixed;
-            display: block;
-            z-index: 99;
-            background-color: black;
-            opacity: 0.6;
-        }
-
-        #loading-text {
-            color: white;
-            position: absolute;
-            top: 40%;
-            left: 45%;
-            z-index: 100;
-        }
-    </style>
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-
 <body>
-    <div id="loading">
-        <div id="loading-text">Please Wait
-            <button onclick="CancelRequest()">Cancel Request</button>
-        </div>
-    </div>
-    <label for="APIURL">URL:</label>
-    <input type="text" id="APIURL" placeholder="URL" size="100"
-        value="http://localhost/WSL.SS.REST/Api/Users/ActiveUserInfo" />
-    <hr />
-    <input type="radio" id="rd_GET" name="HttpVerb" value="GET" />
-    <label for="rd_GET">GET</label>
-    <input type="radio" id="rd_POST" name="HttpVerb" value="POST" />
-    <label for="rd_POST">POST</label>
-    <input type="radio" id="rd_PUT" name="HttpVerb" value="PUT" />
-    <label for="rd_PUT">PUT</label>
-    <input type="radio" id="rd_DELETE" name="HttpVerb" value="DELETE" />
-    <label for="rd_DELETE">DELETE</label>
 
-    <hr />
+<h1>Modern API Tester</h1>
 
-    <button onclick="AddRow('tblHeaders');">Add Headers</button>
-    <table id="tblHeaders"></table>
+<div class="app">
 
-    <hr />
-
-    <button onclick="AddRow('tblParams');">Add Params</button>
-    <table id="tblParams"></table>
-
-    <div id="Div_RequestBody" style="display: none;">
-        <hr />
-        <label>Request Body:</label>
-        <br />
-        <textarea id="RequestBody" style="width: 250px;height: 250px;"></textarea>
+  <div class="card">
+    <div class="row">
+      <label>Request URL</label>
+      <input id="APIURL" placeholder="https://api.example.com/users" />
     </div>
 
     <hr />
 
-    <button onclick="TestAPI();">test API</button>
+    <div class="row pill-group">
+      <input type="radio" id="GET" name="verb" value="GET" checked />
+      <label for="GET">GET</label>
+      <input type="radio" id="POST" name="verb" value="POST" />
+      <label for="POST">POST</label>
+      <input type="radio" id="PUT" name="verb" value="PUT" />
+      <label for="PUT">PUT</label>
+      <input type="radio" id="DELETE" name="verb" value="DELETE" />
+      <label for="DELETE">DELETE</label>
+    </div>
 
     <hr />
 
-    <div id="container"></div>
+    <div class="row">
+      <strong>Headers</strong>
+      <button class="secondary" onclick="addRow('headers')">+ Add</button>
+    </div>
+    <table id="headers"></table>
+
+    <hr />
+
+    <div class="row">
+      <strong>Query Params</strong>
+      <button class="secondary" onclick="addRow('params')">+ Add</button>
+    </div>
+    <table id="params"></table>
+
+    <hr />
+
+    <div id="bodySection" style="display:none">
+      <label>Request Body (JSON)</label>
+      <textarea id="RequestBody"></textarea>
+    </div>
+
+    <hr />
+
+    <button onclick="sendRequest()">Send Request</button>
+  </div>
+
+  <div class="card">
+    <strong>Response</strong>
+    <div id="response" class="response"></div>
+  </div>
+
+</div>
+
+<div id="loading">
+  <div class="loader">
+    <p>Sending request…</p>
+    <button class="danger" onclick="controller.abort()">Cancel</button>
+  </div>
+</div>
+
+<script>
+  let controller;
+
+  document.querySelectorAll('input[name="verb"]').forEach(r => {
+    r.addEventListener('change', () => {
+      bodySection.style.display = ['POST','PUT'].includes(r.value) ? 'block' : 'none';
+    });
+  });
+
+  function addRow(type) {
+    const table = document.getElementById(type);
+    const row = table.insertRow();
+    row.innerHTML = `
+      <td><button class="danger" onclick="this.closest('tr').remove()">−</button></td>
+      <td><input placeholder="Key" /></td>
+      <td><input placeholder="Value" /></td>`;
+  }
+
+  async function sendRequest() {
+    const urlInput = APIURL.value.trim();
+    if (!urlInput) return alert('Enter a URL');
+
+    controller = new AbortController();
+    loading.style.display = 'flex';
+    response.innerHTML = '';
+
+    const verb = document.querySelector('input[name="verb"]:checked').value;
+
+    const params = new URLSearchParams();
+    [...paramsTableRows()].forEach(([k,v]) => params.append(k,v));
+
+    const url = params.toString() ? `${urlInput}?${params}` : urlInput;
+
+    const headers = {};
+    [...headersTableRows()].forEach(([k,v]) => headers[k] = v);
+
+    try {
+      const res = await fetch(url, {
+        method: verb,
+        headers,
+        body: ['POST','PUT'].includes(verb) ? RequestBody.value : undefined,
+        signal: controller.signal
+      });
+
+      const data = await res.json();
+      response.appendChild(renderjson(data));
+    } catch (e) {
+      response.textContent = e.message;
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  function headersTableRows() {
+    return [...headers.rows].map(r => [r.cells[1].firstChild.value, r.cells[2].firstChild.value]).filter(v => v[0]);
+  }
+
+  function paramsTableRows() {
+    return [...params.rows].map(r => [r.cells[1].firstChild.value, r.cells[2].firstChild.value]).filter(v => v[0]);
+  }
+</script>
+
 </body>
-
 </html>
